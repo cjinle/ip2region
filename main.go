@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 const (
@@ -159,8 +157,8 @@ func getIPInfo(cityID int64, line []byte) *IPInfo {
 func IPHander(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	ret := []byte("[]")
-	vars := mux.Vars(r)
-	if ip, ok := vars["ip"]; ok {
+	ip := r.URL.Query().Get("ip")
+	if ip != "" {
 		ipInfo, err := region.MemorySearch(ip)
 		if err != nil {
 			log.Println(ip, err)
@@ -188,12 +186,11 @@ func main() {
 	}
 	defer region.Close()
 
-	r := mux.NewRouter()
-	r.HandleFunc("/", IPHander)
-	r.HandleFunc("/{ip}", IPHander)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", IPHander)
 
 	srv := &http.Server{
-		Handler:      r,
+		Handler:      mux,
 		Addr:         ":8080",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
